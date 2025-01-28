@@ -1,0 +1,97 @@
+<div class="container mt-4">
+  <div id="flash_messages">
+    <%= render 'shared/flash_messages' %>
+  </div>
+
+  <h1 class="text-center mb-4">Registro de Entrada y Salida</h1>
+  
+  <div class="row align-items-center mb-4">
+    <div class="col">
+      <h4 class="text-muted">
+        Registros del día: <%= @selected_date.strftime("%d/%m/%Y") %>
+      </h4>
+    </div>
+    <div class="col-auto">
+      <%= form_tag time_records_path, method: :get, class: 'form-inline', data: { turbo_frame: 'time_records_content' } do %>
+        <div class="input-group">
+          <%= date_field_tag :date, @selected_date, class: 'form-control' %>
+          <%= submit_tag 'Buscar', class: 'btn btn-secondary' %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <% if @selected_date == Date.current %>
+    <div class="card p-4 mt-3 mb-4">
+      <div class="form-group">
+        <%= label_tag :user_id, "Seleccionar Usuario" %>
+        <div id="user_select">
+          <%= render 'user_select', users: @users %>
+        </div>
+      </div>
+
+      <div class="d-flex gap-2">
+        <%= button_to "Entrada", 
+                     clock_in_time_records_path, 
+                     method: :post,
+                     form: { data: { turbo: true } },
+                     class: "btn btn-success",
+                     data: { user_id_param: true } %>
+
+        <%= button_to "Salida", 
+                     clock_out_time_records_path, 
+                     method: :patch,
+                     form: { data: { turbo: true } },
+                     class: "btn btn-danger",
+                     data: { user_id_param: true } %>
+      </div>
+
+      <div id="new_user_form">
+        <%= render 'user_form', new_user: @new_user %>
+      </div>
+    </div>
+  <% end %>
+
+  <%= turbo_frame_tag 'time_records_content' do %>
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Registros</h5>
+        <%= link_to time_records_path(format: :xlsx, date: @selected_date), class: "btn btn-primary btn-sm" do %>
+          <i class="fas fa-file-excel"></i> Exportar a Excel
+        <% end %>
+      </div>
+      <div class="card-body">
+        <div id="time_records_table">
+          <%= render 'time_records_table', todays_records: @records %>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<%= javascript_tag do %>
+  document.addEventListener('DOMContentLoaded', function() {
+    const userSelect = document.getElementById('user_id');
+    const buttons = document.querySelectorAll('button[data-user-id-param]');
+    
+    function updateForms() {
+      const selectedUserId = userSelect.value;
+      buttons.forEach(button => {
+        const form = button.closest('form');
+        let hiddenInput = form.querySelector('input[name="user_id"]');
+        
+        if (!hiddenInput) {
+          hiddenInput = document.createElement('input');
+          hiddenInput.type = 'hidden';
+          hiddenInput.name = 'user_id';
+          form.appendChild(hiddenInput);
+        }
+        
+        hiddenInput.value = selectedUserId;
+      });
+    }
+
+    userSelect.addEventListener('change', updateForms);
+    updateForms();
+  });
+<% end %> 
